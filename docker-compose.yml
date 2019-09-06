@@ -1,0 +1,62 @@
+version: "3"
+services:
+  data:
+    image: busybox
+    volumes:
+      - ./misc/data:/var/lib/mysql
+
+  php:
+    build: ./php
+    ports:
+      - 80:80
+    volumes:
+      - ./** source_dir **:/var/www/html
+      - ./php/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - ./php/vhost.conf://etc/apache2/conf-enabled/vhost.conf
+      - ./php/ssmtp.conf:/etc/ssmtp/ssmtp.conf
+    working_dir: /var/www/html
+    links:
+      - mariadb
+    container_name: php
+
+  mariadb:
+    image: mariadb:10.4.4
+    environment:
+      #各自のMuSQLコンテナに合わせる事
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ** database_name **
+      MYSQL_ROOT_USER: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./misc/data:/var/lib/mysql
+      - ./misc/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+    container_name: mariadb
+
+  gulp: # sassをcssに変換。
+    build: ./gulp
+    volumes:
+      - ./gulp/gulpfile.js:/data/gulpfile.js
+      - ./gulp/package-lock.json:/data/package-lock.json
+      - ./gulp/package.json:/data/package.json
+      - ./** source_dir **/resources/sass/:/data/** source_dir **/stylesheets #sassソースコード
+      - ./** source_dir **/public/css:/data/public/stylesheets #出力先ディレクトリ
+
+    command: bash -c "gulp"
+    restart: always
+    container_name: gulp
+
+  smtp:
+    image: schickling/mailcatcher
+    container_name: smtp
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    container_name: smtp
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    container_name: adminer
