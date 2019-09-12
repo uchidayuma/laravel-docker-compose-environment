@@ -7,6 +7,8 @@ var gulp = require('gulp');
 // css圧縮
 var cssmin = require('gulp-cssmin');
 var autoprefixer = require("gulp-autoprefixer");
+var cleanCSS = require('gulp-clean-css');
+var rename = require('gulp-rename')
 // エラーハンドリング
 var plumber = require("gulp-plumber");
 var notify = require('gulp-notify');
