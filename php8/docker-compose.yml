@@ -1,0 +1,71 @@
+version: "3"
+services:
+  data:
+    image: busybox
+    volumes:
+      - ./misc/data:/var/lib/mysql
+
+  php:
+    build: ./php
+    ports:
+      - 80:80
+    volumes:
+      - ./shibanchu:/var/www/html
+      - ./php/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - ./php/vhost.conf:/etc/apache2/conf-enabled/vhost.conf
+      - ./php/ssmtp.conf:/etc/ssmtp/ssmtp.conf
+      - ./php/crontab:/var/spool/cron/crontabs/root
+    working_dir: /var/www/html
+    shm_size: 512m
+    links:
+      - mariadb
+    container_name: php
+
+  mariadb:
+    image: mariadb:10.4.4
+    environment:
+      #各自のMuSQLコンテナに合わせる事
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: shibanchu
+      MYSQL_ROOT_USER: root
+      TZ: Asia/Tokyo
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./misc/data:/var/lib/mysql
+      - ./misc/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+    container_name: mariadb
+
+  gulp: # sassをcssに変換。
+    build: ./gulp
+    volumes:
+      - ./gulp/gulpfile.js:/data/gulpfile.js
+      - ./gulp/package-lock.json:/data/package-lock.json
+      - ./gulp/package.json:/data/package.json
+      - ./shibanchu/resources/sass:/data/shibanchu/stylesheets #sassソースコード
+      - ./shibanchu/public/styles:/data/public/stylesheets #出力先ディレクトリ
+
+    command: bash -c "gulp"
+    #restart: always
+    container_name: gulp
+
+  smtp:
+    image: schickling/mailcatcher
+    container_name: smtp
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    container_name: smtp
+
+  selenium:
+    # Intelはこっち
+    #image: selenium/standalone-chrome-debug:3.141.59-oxygen
+    # Armはこっち
+    image: seleniarm/standalone-chromium:4.0.0-beta-1-20210215
+    environment:
+      TZ: "Asia/Tokyo"
+    shm_size: 256m
+    ports:
+      - 4444:4444
+    container_name: dusk
+    
